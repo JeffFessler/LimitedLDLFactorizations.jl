@@ -37,10 +37,12 @@ mutable struct LLDLException <: Exception
   msg::String
 end
 
+const RealU = Number # think Union{Real,Unitful{Real}}
+
 const error_string = "LLDL factorization was not computed or failed"
 
 mutable struct LimitedLDLFactorization{
-  T <: Real,
+  T <: RealU,
   Ti <: Integer,
   V1 <: AbstractVector,
   V2 <: AbstractVector,
@@ -55,7 +57,7 @@ mutable struct LimitedLDLFactorization{
   Lnzvals::SubArray{T, 1, Vector{T}, Tuple{UnitRange{Int}}, true}
 
   nnz_diag::Int
-  adiag::Vector{T}
+  adiag::Vector{real(T)}
 
   D::Vector{T}
   P::V1
@@ -90,7 +92,7 @@ factorized(LLDL::LimitedLDLFactorization) = LLDL.__factorized
 
 Updates the shift `α` of the `LimitedLDLFactorization` object `LLDL`.
 """
-function update_shift!(LLDL::LimitedLDLFactorization{T}, α::T) where {T <: Real}
+function update_shift!(LLDL::LimitedLDLFactorization{T}, α::T) where {T <: RealU}
   LLDL.α = α
   LLDL
 end
@@ -104,7 +106,7 @@ by which the shift `α` will be increased each time a `attempt_lldl!` fails.
 function update_shift_increase_factor!(
   LLDL::LimitedLDLFactorization{T},
   α_increase_factor::Number,
-) where {T <: Real}
+) where {T <: RealU}
   LLDL.α_increase_factor = T(α_increase_factor)
   LLDL
 end
@@ -118,7 +120,7 @@ function LimitedLDLFactorization(
   n::Int,
   nnzT::Int,
   ::Type{Tf},
-) where {Tv <: Number, Ti, Tf <: Real}
+) where {Tv <: Number, Ti, Tf <: RealU}
   np = n * memory
   Pinv = similar(P)
 
@@ -220,7 +222,7 @@ function LimitedLDLFactorization(
   memory::Int = 0,
   α::Number = 0,
   α_increase_factor::Number = 10,
-) where {Tv <: Number, Ti <: Integer, Tf <: Real}
+) where {Tv <: Number, Ti <: Integer, Tf <: RealU}
   memory < 0 && error("limited-memory parameter must be nonnegative")
   n = size(T, 1)
   n != size(T, 2) && error("input matrix must be square")
@@ -473,11 +475,11 @@ function lldl(
   ::Type{Tf};
   P::AbstractVector{<:Integer} = amd(A),
   memory::Int = 0,
-  droptol::Real = Tv(0),
+  droptol::RealU = Tv(0),
   α::Number = 0,
   α_increase_factor::Number = 10,
   check_tril::Bool = true,
-) where {Tv <: Number, Ti <: Integer, Tf <: Real}
+) where {Tv <: Number, Ti <: Integer, Tf <: RealU}
   T = (!check_tril || istril(A)) ? A : tril(A)
   S = LimitedLDLFactorization(
     T,
@@ -499,7 +501,7 @@ lldl(A::Matrix{Tv}; kwargs...) where {Tv <: Number} = lldl(sparse(A); kwargs...)
 function lldl(
   sA::Union{Symmetric{T, SparseMatrixCSC{T, Ti}}, Hermitian{T, SparseMatrixCSC{T, Ti}}};
   kwargs...,
-) where {T <: Real, Ti <: Integer}
+) where {T <: RealU, Ti <: Integer}
   sA.uplo == 'U' && error("matrix must contain the lower triangle")
   A = sA.data
   lldl(A; kwargs...)

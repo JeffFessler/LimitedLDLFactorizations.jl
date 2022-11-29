@@ -2,6 +2,12 @@ using LinearAlgebra, SparseArrays, Test
 
 using AMD, Metis, LimitedLDLFactorizations
 
+@testset "complex" begin
+    B = rand(ComplexF32, 4, 5)
+    A = B * B' # Hermitian
+    L = lldl(A) # fails!
+end
+
 @testset "SQD no shift" begin
   # this matrix possesses an LDLᵀ factorization without pivoting
   A = [
